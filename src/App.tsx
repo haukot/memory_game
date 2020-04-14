@@ -1,43 +1,57 @@
 import React, { useState, useEffect } from 'react'
+import cs from 'classnames'
 
-import styles from './styles.scss'
+import { Matrix, Card, Element } from './types'
+import CardView from './Card'
+import BoardView, { useBoard } from './Board'
+import { HandView, usePlayer } from './Player'
 
-function buildRow() {
-    const water = 'water' as Element
-    const fire = 'fire' as Element
-    const air = 'air' as Element
-    return [{ element: fire }, { element: water }, { element: air }]
-}
+import styles from './styles.module.scss'
 
-function buildMatrix() {
-    return [
-        buildRow(),
-        buildRow(),
-        buildRow()
-    ]
-}
+// Card: closed, selected for hand(but not open), open for player(3 cards), open for both(when
+// showdown), selected for place, selected for showdown
 
-type Matrix = Array<Array<Card>>
-// Maybe: enum Element { Air = "Air", } ?
-type Element = 'water' | 'fire' | 'earth' | 'air'
-type Card = { element: Element }
+// function renderSelected(selected: Array<Card>, onCardClick: (c: Card) => void) {
+//     const els = selected.map((card) => {
+//         return <CardView card={card} onClick={onCardClick} open={true} />
+//     })
+//     return <div className={styles.selected}> { els } </div>
+// }
 
-function renderCard(card: Card) {
-    return <div>{ card.element }</div>
-}
+// function cardOnClick (setMatrix: (m: any) => void, setSelected: (s: any) => void) {
+//     return function (card: Card) {
+//         setSelected((s: Array<Card>) => s.concat([card]))
+//         setMatrix((m: Matrix) => removeCard(m, card))
+//     }
+// }
 
-function renderMatrix(matrix: Matrix) {
-    return matrix.map((row) => {
-        return <div className={styles.row}> { row.map((elem) => renderCard(elem)) } </div>
-    })
+function selectedOnClick (setMatrix: (m: any) => void, setSelected: (s: any) => void) {
+    return function (card: Card) {
+    }
 }
 
 function App() {
-    const [matrix, setMatrix] = useState(buildMatrix())
+    const board = useBoard()
+    const player = usePlayer()
+
+    const moveToHand = () => {
+        const cards = board.moveToHand()
+        player.hand.setCards(cards)
+    }
+
+    const placeFromHand = (i: number, j: number) => {
+        const card = player.hand.placeCard()
+
+        if (card !== null) {
+            board.placeCard(card, i, j)
+        }
+    }
 
     return (
-        <div className="App">
-            { renderMatrix(matrix) }
+        <div className={styles.app}>
+            <BoardView board={board} placeFromHand={placeFromHand} />
+            <div onClick={moveToHand}> Move to hand </div>
+            <HandView player={player} />
         </div>
     )
 }
