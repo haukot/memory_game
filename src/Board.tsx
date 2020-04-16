@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { shuffle, fill, flatten } from 'lodash'
+import React, { useState, useEffect, useContext } from 'react'
+import { shuffle, fill, flatten, sortBy } from 'lodash'
 
 import { Matrix, Card, Element, Board } from './types'
+import { Phase } from './phases'
 import CardView from './Card'
 
 import styles from './styles.module.scss'
@@ -37,10 +38,95 @@ function removeCard(matrix: Matrix, card: Card): Matrix {
     })
 }
 
-export function useBoard(): Board {
+function findIndex(matrix: Matrix, card: Card): [number, number] {
+    for (let i in matrix) {
+        for (let j in matrix[i]) {
+            if (matrix[i][j] === card) return [Number(i), Number(j)]
+        }
+    }
+    throw new Error('card not found')
+}
+
+function isClose(matrix: Matrix, card: Card, alreadySelected: Card): boolean {
+    const [i, j] = findIndex(matrix, card)
+    const [selI, selJ] = findIndex(matrix, alreadySelected)
+    return isCloseIdx(i, j, selI, selJ)
+}
+
+function isCloseIdx(i: number, j: number, selI: number, selJ: number): boolean {
+    return (Math.abs(selI - i) <= 1 && Math.abs(selJ - j) <= 1)
+}
+
+function onOneLine(matrix: Matrix, card: Card, selected: Array<Card>): boolean {
+    const [selI1, selJ1] = findIndex(matrix, selected[0])
+    const [selI2, selJ2] = findIndex(matrix, selected[1])
+    const [i, j] = findIndex(matrix, card)
+
+    // x = const
+    if (selI1 === selI2 && i !== selI1) {
+        console.log('HUI x=const')
+        return false
+    }
+    // y = const
+    if (selJ1 === selJ2 && j !== selJ1) {
+        console.log('HUI y=const')
+        return false
+    }
+    // x + y = const
+    if ((selI1 + selJ1 === selI2 + selJ2) && (i + j !== selI1 + selJ1)) {
+        console.log('HUI x + y = const')
+        return false
+    }
+    // x - y = const
+    if ((selI1 - selJ1 === selI2 - selJ2) && (i - j !== selI1 - selJ1)) {
+        console.log('HUI x - y = const')
+        return false
+    }
+
+    const sortedCards = sortBy(selected.map(c => findIndex(matrix, c)), (indx) => {
+        const [i, j] = indx
+        return (selI1 === selI2) ? j : i
+    })
+
+    // close to one of edge cards on the line
+    const lastIdx = sortedCards.length - 1
+    if (!(isCloseIdx(i, j, sortedCards[0][0], sortedCards[0][1]) ||
+        isCloseIdx(i, j, sortedCards[lastIdx][0], sortedCards[lastIdx][1]))) {
+        console.log('HUI close to edge case',
+                    lastIdx,
+                    isCloseIdx(i, j, sortedCards[0][0], sortedCards[0][1]),
+                    isCloseIdx(i, j, sortedCards[lastIdx][0], sortedCards[lastIdx][1])
+                   )
+        return false
+    }
+    // unselect only for edge cards
+    if (selected.includes(card) && !(
+        (i === sortedCards[0][0] && j === sortedCards[0][1]) ||
+        (i === sortedCards[lastIdx][0] && j === sortedCards[lastIdx][1])
+    )) {
+        console.log('HUI unselect only for edge case',
+                    lastIdx,
+                    (i === sortedCards[0][0] && j === sortedCards[0][1]),
+                    (i === sortedCards[lastIdx][0] && j === sortedCards[lastIdx][1])
+                   )
+        return false
+    }
+
+    console.log("HUI TRUE",
+                sortedCards,
+                lastIdx,
+                isCloseIdx(i, j, sortedCards[0][0], sortedCards[0][1]),
+                isCloseIdx(i, j, sortedCards[lastIdx][0], sortedCards[lastIdx][1]),
+                (i === sortedCards[0][0] && j === sortedCards[0][1]),
+                (i === sortedCards[lastIdx][0] && j === sortedCards[lastIdx][1])
+               )
+
+    return true
+}
+
+export function useBoard(phase: Phase): Board {
     const [matrix, setMatrix] = useState(buildMatrix())
-    const [selectedForHand, setSelectedForHand] = useState([] as Array<Card>)
-    const [selectedForOpen, setSelectedForOpen] = useState([] as Array<Card>)
+    const [selected, setSelected] = useState([] as Array<Card>)
 
     const selectCardFor = (card: Card) => (s: Array<Card>) => {
         // null - EmptyPlace по факту?
@@ -52,33 +138,38 @@ export function useBoard(): Board {
         return s.concat([card])
     }
 
-    const selectForHand = (card: Card) => {
-        setSelectedForHand(selectCardFor(card))
-    }
-
-    const selectForOpen = (card: Card) => {
-        setSelectedForHand(selectCardFor(card))
+    const select = (card: Card, i: number, j: number) => {
+        if (!(phase === Phase.SelectionToHand || phase === Phase.SelectionToOpen)) return
+        if (phase === Phase.SelectionToOpen) {
+            if (selected.length === 1) {
+                if (!isClose(matrix, card, selected[0])) return
+            } else if (selected.length > 1) {
+                if (!onOneLine(matrix, card, selected)) return
+            }
+        }
+        setSelected(selectCardFor(card))
     }
 
     return {
         matrix,
-        selectedForHand,
-        selectedForOpen,
+        selected,
 
-        moveToHand: () => {
-            const newMatrix = selectedForHand.reduce((m: Matrix, c: Card) => removeCard(m, c), matrix)
+        dropSelection: () => {
+            setSelected([])
+        },
+        ejectSelected: () => {
+            const newMatrix = selected.reduce((m: Matrix, c: Card) => removeCard(m, c), matrix)
             setMatrix(newMatrix)
-            setSelectedForHand([])
+            setSelected([])
             // TODO: сейфово так делать? возвращать значение после как его изменил через setSome
-            return selectedForHand
+            return selected
         },
         placeCard: (card, i, j) => {
             // TODO: сейфово так делать? менять не иммутабельно
             matrix[i][j] = card
             setMatrix(matrix)
         },
-        selectForHand,
-        selectForOpen
+        select,
     }
 }
 
@@ -92,10 +183,10 @@ export default function BoardView(props: BoardProps) {
     const { board } = props
 
     const renderCard = (card: Card, i: number, j: number) => {
-        const selected = board.selectedForHand.includes(card)
+        const selected = board.selected.includes(card)
         const onClick = () => {
             if (card === null) return props.placeFromHand(i, j)
-            board.selectForHand(card)
+            board.select(card, i, j)
         }
         // TODO: Wtf key for null?
         return (

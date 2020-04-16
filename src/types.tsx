@@ -12,13 +12,12 @@ export type Matrix = Array<Array<Card | null>>
 
 export type Board = {
     matrix: Matrix,
-    selectedForHand: Array<Card>,
-    selectedForOpen: Array<Card>,
+    selected: Array<Card>,
 
     placeCard: (c: Card, i: number, j: number) => void,
-    moveToHand: () => Array<Card>,
-    selectForHand: (c: Card) => void,
-    selectForOpen: (c: Card) => void
+    dropSelection: () => void,
+    ejectSelected: () => Array<Card>,
+    select: (c: Card, i: number, j: number) => void,
 }
 
 export type PlayerHand = {
@@ -31,5 +30,12 @@ export type PlayerHand = {
 }
 export type Player = {
     name: string,
-    hand: PlayerHand
+    hand: PlayerHand,
+    score: {
+        count: number,
+        // TODO: should be combinations, not plain cards
+        cards: Array<Card>,
+
+        updateScore: (cards: Array<Card>, count: number) => void
+    }
 }

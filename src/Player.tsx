@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 
 import { Card, Player } from './types'
 import CardView from './Card'
+import { Phase } from './phases'
 
 import styles from './styles.module.scss'
 
@@ -9,11 +10,14 @@ type PlayerProps = {
     player: Player
 }
 
-export function usePlayer() {
-    const [handCards, setHandCards] = useState([] as Array<Card>)
+export function usePlayer(phase: Phase) {
     const [selectedForPlace, setSelectedForPlace] = useState(null as Card)
+    const [handCards, setHandCards] = useState([] as Array<Card>)
+    const [scoreCount, setScoreCount] = useState(0)
+    const [scoreCards, setScoreCards] = useState([] as Array<Card>)
 
     const selectForPlace = (card: Card) => {
+        if (phase !== Phase.SelectionToPlace) return
         setSelectedForPlace((s: Card) => {
             if (s === card) return null
             return card
@@ -36,6 +40,14 @@ export function usePlayer() {
                 return card
             },
             selectForPlace
+        },
+        score: {
+            count: scoreCount,
+            cards: scoreCards,
+            updateScore: (cards: Array<Card>, count: number) => {
+                setScoreCards(c => c.concat(cards))
+                setScoreCount(c => c + count)
+            }
         }
     }
 }
