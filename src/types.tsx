@@ -34,7 +34,7 @@ export type Player = {
     score: {
         count: number,
         // TODO: should be combinations, not plain cards
-        cards: Array<Card>,
+        combinations: Array<Array<Card>>,
 
         updateScore: (cards: Array<Card>, count: number) => void
     }

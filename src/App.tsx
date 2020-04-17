@@ -5,7 +5,7 @@ import { uniqBy } from 'lodash'
 import { Matrix, Card, Element } from './types'
 import CardView from './Card'
 import BoardView, { useBoard } from './Board'
-import { HandView, usePlayer } from './Player'
+import { ScoreView, HandView, usePlayer } from './Player'
 import { Phase, nextPhase } from './phases'
 
 import styles from './styles.module.scss'
@@ -82,7 +82,7 @@ function App() {
               <div onClick={openCards}> Open cards </div>
            }
            <HandView player={player} />
-           { player.score.count }
+           <ScoreView player={player} />
          </div>
     )
 }

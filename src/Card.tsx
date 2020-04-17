@@ -24,7 +24,7 @@ export default function CardView(props: CardProps) {
         [styles.selected]: selected
     })
 
-    return <div className={className} onClick={() => onClick(card)}>
+    return <div className={className} onClick={() => onClick && onClick(card)}>
         { card.element }
     </div>
 }

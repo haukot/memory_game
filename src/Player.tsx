@@ -14,7 +14,7 @@ export function usePlayer(phase: Phase) {
     const [selectedForPlace, setSelectedForPlace] = useState(null as Card)
     const [handCards, setHandCards] = useState([] as Array<Card>)
     const [scoreCount, setScoreCount] = useState(0)
-    const [scoreCards, setScoreCards] = useState([] as Array<Card>)
+    const [scoreCombinations, setScoreCombinations] = useState([] as Array<Array<Card>>)
 
     const selectForPlace = (card: Card) => {
         if (phase !== Phase.SelectionToPlace) return
@@ -43,9 +43,9 @@ export function usePlayer(phase: Phase) {
         },
         score: {
             count: scoreCount,
-            cards: scoreCards,
+            combinations: scoreCombinations,
             updateScore: (cards: Array<Card>, count: number) => {
-                setScoreCards(c => c.concat(cards))
+                setScoreCombinations(c => c.concat([cards]))
                 setScoreCount(c => c + count)
             }
         }
@@ -69,4 +69,27 @@ export function HandView (props: PlayerProps) {
         )
     })
     return <div className={styles.hand}> { els } </div>
+}
+
+
+export function ScoreView(props: PlayerProps) {
+    const { player } = props
+    return <div className={styles.score}>
+        Score: { player.score.count }
+       { player.score.combinations.length > 0 && <div> Combinations: </div> }
+       { player.score.combinations.map((combination) => {
+          return <div className={styles.combination}>
+            { combination.map((card) => {
+                return <CardView
+                  key={card ? card.id : `null`}
+                  onClick={() => {}}
+                  card={card}
+                  open={true}
+                />
+              })
+            }
+           </div>
+         })
+        }
+    </div>
 }
